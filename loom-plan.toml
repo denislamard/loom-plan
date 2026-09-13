@@ -24,3 +24,5 @@ days = ["mon", "tue", "wed", "thu", "fri"]
 [status]
 done_prefix = "[fait]"
 cancelled_prefix = "[annulé]"
+# Sur une série récurrente : chaque occurrence est une chose à faire, elle remonte en retard.
+tracked_prefix = "[suivi]"

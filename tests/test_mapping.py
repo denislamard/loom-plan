@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
+import pytest
 from conftest import CAL_ID, LIST_ID, TZ, event, task
 
 from loom_plan.config import Config
@@ -11,12 +12,14 @@ from loom_plan.mapping import (
     estimate_minutes,
     event_body,
     event_to_item,
+    normalize_rrule,
+    parse_title,
     strip_prefix,
     task_to_item,
     truncate_notes,
     with_prefix,
 )
-from loom_plan.model import ItemId, ItemType, Status
+from loom_plan.model import ItemId, ItemType, PlanError, Status
 
 
 def _ev(cfg: Config, payload: dict[str, object]):
@@ -180,3 +183,53 @@ def test_clean_html() -> None:
     assert clean_html(raw) == "06 15 69 27 78\nCode & badge\nSuite"
     assert clean_html("Tel. : 03 80\n06 59") == "Tel. : 03 80\n06 59"
     assert truncate_notes("<b></b>", 500) is None
+
+
+def test_tracked_series_prefix(cfg: Config) -> None:
+    p = cfg.prefixes
+    parsed = parse_title("[suivi] Relancer les devis", p)
+    assert parsed.tracked and parsed.status is None and parsed.title == "Relancer les devis"
+    parsed = parse_title("[fait] [suivi] Relancer les devis", p)
+    assert parsed.tracked and parsed.status is Status.DONE and parsed.title == "Relancer les devis"
+    parsed = parse_title("[SUIVI] [Fait] x", p)
+    assert parsed.tracked and parsed.status is Status.DONE and parsed.title == "x"
+    # rebuilding keeps [suivi] whatever the status, and never duplicates it
+    assert with_prefix("[suivi] x", Status.DONE, p) == "[fait] [suivi] x"
+    assert with_prefix("[fait] [suivi] x", Status.OPEN, p) == "[suivi] x"
+    assert with_prefix("x", Status.DONE, p, tracked=True) == "[fait] [suivi] x"
+    assert with_prefix("x", Status.DONE, p) == "[fait] x"
+    item = _ev(
+        cfg,
+        event(
+            "m_1",
+            "[suivi] Relancer",
+            "2026-09-11T17:00:00+02:00",
+            "2026-09-11T17:30:00+02:00",
+            series="m",
+        ),
+    )
+    assert item.tracked and item.recurring and item.status is Status.OPEN
+    assert item.title == "Relancer"
+
+
+def test_rrule_normalized_and_validated() -> None:
+    assert normalize_rrule("FREQ=WEEKLY;BYDAY=WE") == "RRULE:FREQ=WEEKLY;BYDAY=WE"
+    assert normalize_rrule("rrule:freq=monthly;bymonthday=1") == "RRULE:FREQ=MONTHLY;BYMONTHDAY=1"
+    with pytest.raises(PlanError):
+        normalize_rrule("tous les mercredis")
+    body = event_body(
+        title="x",
+        start=datetime(2026, 9, 16, 9, tzinfo=TZ),
+        end=datetime(2026, 9, 16, 9, 30, tzinfo=TZ),
+        all_day=False,
+        recurrence="FREQ=WEEKLY;BYDAY=WE",
+        tz=TZ,
+    )
+    assert body["recurrence"] == ["RRULE:FREQ=WEEKLY;BYDAY=WE"]
+
+
+def test_series_master_is_recurring(cfg: Config) -> None:
+    payload = event("m", "[suivi] Malt", "2026-09-16T09:00:00+02:00", "2026-09-16T09:30:00+02:00")
+    payload["recurrence"] = ["RRULE:FREQ=WEEKLY;BYDAY=WE"]
+    item = _ev(cfg, payload)
+    assert item.recurring and item.series_id == "m" and item.tracked

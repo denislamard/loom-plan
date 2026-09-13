@@ -139,7 +139,7 @@ class PlanService:
         out: list[Item] = []
         if epoch < now:
             for ev in await self._events_in(epoch, now, status=Status.OPEN):
-                if ev.recurring and not include_recurring:
+                if ev.recurring and not include_recurring and not ev.tracked:
                     continue
                 if _event_ended(ev, now) and _event_end_exclusive(ev) > epoch:
                     out.append(ev)
@@ -276,6 +276,8 @@ class PlanService:
         notes: str | None = None,
         location: str | None = None,
         all_day: bool = False,
+        recurrence: str | None = None,
+        tracked: bool = False,
     ) -> Item:
         if not title.strip():
             raise PlanError("titre vide")
@@ -283,14 +285,17 @@ class PlanService:
             raise PlanError("le dernier jour doit être ≥ au premier jour")
         if not all_day and end <= start:
             raise PlanError("la fin doit être après le début")
+        if tracked and recurrence is None:
+            raise PlanError("tracked ([suivi]) n'a de sens que sur une récurrence")
         cal = await self._resolve(container or self._cfg.primary_calendar, ItemType.EVENT)
         body = event_body(
-            title=title,
+            title=with_prefix(title, Status.OPEN, self._cfg.prefixes, tracked=tracked),
             start=start,
             end=end,
             all_day=all_day,
             notes=notes,
             location=location,
+            recurrence=recurrence,
             tz=self._cfg.timezone,
         )
         payload = await self._cal.insert_event(cal.id, body)
@@ -338,7 +343,9 @@ class PlanService:
             all_day = "date" in _table(current, "start")
         if title is not None:
             existing = self._event(current, cal)
-            title = with_prefix(title, existing.status, self._cfg.prefixes)
+            title = with_prefix(
+                title, existing.status, self._cfg.prefixes, tracked=existing.tracked
+            )
         body = event_body(
             title=title,
             start=start,
@@ -411,8 +418,12 @@ class PlanService:
         current = self._event(current_payload, cal)
         if current.status is status:
             return current
-        body: JsonObject = {"summary": with_prefix(current.title, status, self._cfg.prefixes)}
-        body["status"] = "cancelled" if status is Status.CANCELLED else "confirmed"
+        body: JsonObject = {
+            "summary": with_prefix(
+                current.title, status, self._cfg.prefixes, tracked=current.tracked
+            ),
+            "status": "cancelled" if status is Status.CANCELLED else "confirmed",
+        }
         # A recurring instance id patches that occurrence only (spec §6 set_status).
         payload = await self._cal.patch_event(cal.id, iid.native_id, body)
         self._invalidate()

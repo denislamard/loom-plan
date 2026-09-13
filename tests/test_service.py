@@ -91,6 +91,20 @@ async def test_overdue_respects_epoch_and_recurrence(
                         series="m",
                     ),
                     event(
+                        "r_1",
+                        "[suivi] Relancer devis",
+                        "2026-09-14T17:00:00+02:00",
+                        "2026-09-14T17:30:00+02:00",
+                        series="r",
+                    ),
+                    event(
+                        "r_2",
+                        "[fait] [suivi] Relancer devis",
+                        "2026-09-07T17:00:00+02:00",
+                        "2026-09-07T17:30:00+02:00",
+                        series="r",
+                    ),
+                    event(
                         "running",
                         "En cours",
                         "2026-09-15T10:00:00+02:00",
@@ -115,9 +129,16 @@ async def test_overdue_respects_epoch_and_recurrence(
     )
     items = await svc.overdue()
     # a task due on the 14th (midnight) sorts ahead of that day's events
-    assert [i.title for i in items] == ["Relance devis", "Démo agent"]
+    # r_1 is a tracked occurrence (always in), r_2 is done, m_1 an ordinary recurrence (out)
+    assert [i.title for i in items] == ["Relance devis", "Démo agent", "Relancer devis"]
+    assert items[-1].tracked
     with_rec = await svc.overdue(include_recurring=True)
-    assert [i.title for i in with_rec] == ["Relance devis", "Stand-up", "Démo agent"]
+    assert [i.title for i in with_rec] == [
+        "Relance devis",
+        "Stand-up",
+        "Démo agent",
+        "Relancer devis",
+    ]
     # The reader-only holidays calendar is never queried.
     assert not any("holidays" in str(call.request.url) for call in respx_mock.calls)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType, reportUnknownVariableType]
 
@@ -210,6 +231,35 @@ async def test_set_status_on_event_rewrites_title(
     assert item.status is Status.DONE and item.title == "Démo"
     assert json.loads(patch.calls.last.request.content)["summary"] == "[fait] Démo"
 
+    # a tracked occurrence keeps its [suivi] marker when marked done
+    respx_mock.get(f"{EVENTS_URL}/r_1").mock(
+        return_value=httpx.Response(
+            200,
+            json=event(
+                "r_1",
+                "[suivi] Relancer",
+                "2026-09-14T17:00:00+02:00",
+                "2026-09-14T17:30:00+02:00",
+                series="r",
+            ),
+        )
+    )
+    patch_r = respx_mock.patch(f"{EVENTS_URL}/r_1").mock(
+        return_value=httpx.Response(
+            200,
+            json=event(
+                "r_1",
+                "[fait] [suivi] Relancer",
+                "2026-09-14T17:00:00+02:00",
+                "2026-09-14T17:30:00+02:00",
+                series="r",
+            ),
+        )
+    )
+    item = await svc.set_status(f"evt_{CAL_ID}/r_1", Status.DONE)
+    assert item.status is Status.DONE and item.tracked and item.title == "Relancer"
+    assert json.loads(patch_r.calls.last.request.content)["summary"] == "[fait] [suivi] Relancer"
+
 
 async def test_set_status_task_cancelled_and_idempotent(
     svc: PlanService, respx_mock: respx.MockRouter
@@ -293,3 +343,28 @@ async def test_401_retried_once(svc: PlanService, respx_mock: respx.MockRouter) 
     route.side_effect = [httpx.Response(401), httpx.Response(200, json={"items": []})]
     assert await svc.tasks() == []
     assert route.call_count == 2
+
+
+async def test_add_tracked_recurring_event(svc: PlanService, respx_mock: respx.MockRouter) -> None:
+    _mock_containers(respx_mock)
+    created = event("m", "[suivi] Malt", "2026-09-16T09:00:00+02:00", "2026-09-16T09:30:00+02:00")
+    created["recurrence"] = ["RRULE:FREQ=WEEKLY;BYDAY=WE"]
+    post = respx_mock.post(EVENTS_URL).mock(return_value=httpx.Response(200, json=created))
+    item = await svc.add_event(
+        "Malt",
+        datetime(2026, 9, 16, 9, tzinfo=TZ),
+        datetime(2026, 9, 16, 9, 30, tzinfo=TZ),
+        recurrence="FREQ=WEEKLY;BYDAY=WE",
+        tracked=True,
+    )
+    sent = json.loads(post.calls.last.request.content)
+    assert sent["summary"] == "[suivi] Malt"
+    assert sent["recurrence"] == ["RRULE:FREQ=WEEKLY;BYDAY=WE"]
+    assert item.tracked and item.recurring
+    with pytest.raises(PlanError, match="récurrence"):
+        await svc.add_event(
+            "x",
+            datetime(2026, 9, 16, 9, tzinfo=TZ),
+            datetime(2026, 9, 16, 10, tzinfo=TZ),
+            tracked=True,
+        )

@@ -65,6 +65,7 @@ class Item:
     all_day: bool = False
     recurring: bool = False
     series_id: str | None = None
+    tracked: bool = False  # recurring series whose occurrences are things to do
     location: str | None = None
     # tasks
     due: date | None = None

@@ -43,6 +43,7 @@ class WorkConfig:
 class StatusPrefixes:
     done: str
     cancelled: str
+    tracked: str  # on a recurring series: its occurrences are things to do (spec §4)
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,6 +128,7 @@ def parse_config(raw: dict[str, object], path: Path) -> Config:
         prefixes=StatusPrefixes(
             done=_str(status, "done_prefix", "[fait]"),
             cancelled=_str(status, "cancelled_prefix", "[annulé]"),
+            tracked=_str(status, "tracked_prefix", "[suivi]"),
         ),
         notes_max_chars=_int(general, "notes_max_chars", 500),
         cache_ttl_seconds=float(_int(general, "cache_ttl_seconds", 30)),

@@ -1,0 +1,100 @@
+{
+  "mcpServers": {
+    "loom-fs": {
+      "command": "/home/denis/dev/loom-fs-mcp/.venv/bin/loom-fs-mcp",
+      "args": [
+        "--config",
+        "/home/denis/dev/loom-fs-mcp/roots.toml"
+      ],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "FASTMCP_CHECK_FOR_UPDATES": "off"
+      }
+    },
+    "loom-memory": {
+      "command": "/home/denis/dev/loom-memory/.venv/bin/loom-memory-mcp",
+      "args": [],
+      "env": {
+        "FASTMCP_SHOW_SERVER_BANNER": "false",
+        "FASTMCP_CHECK_FOR_UPDATES": "off",
+        "LOOM_MEMORY_DEVICE": "cpu",
+        "LOOM_MEMORY_ALLOWED_ROOTS": "/home/denis/dev",
+        "LOOM_MEMORY_QDRANT_URL": "http://127.0.0.1:6333"
+      }
+    },
+    "loom-plan": {
+      "command": "/home/denis/dev/loom-plan/.venv/bin/loom-plan-mcp",
+      "args": [
+        "--config",
+        "/home/denis/dev/loom-plan/loom-plan.toml"
+      ],
+      "env": {}
+    }
+  },
+  "coworkUserFilesPath": "/home/denis/Claude",
+  "preferences": {
+    "coworkBrowserToolsEnabled": true,
+    "coworkPreferredBrowser": "built_in",
+    "launchPreviewPersistedWorkspaces": [],
+    "launchPreviewSessionScopedSessions": [],
+    "remoteSessionFolderGrants": {
+      "session_01PFLtcJQgjwSkEcmdR7R1x6": [
+        "/home/denis/dev/publications"
+      ],
+      "session_015RYtZBH4LvwahiuPPqUbqt": [
+        "/home/denis/dev/publications"
+      ],
+      "session_015rqKfXxYM8a2N91DUrjy9b": [
+        "/home/denis/dev/loom-memory",
+        "/home/denis/dev/denislamard.github.io"
+      ],
+      "session_016kHRhMGxxy5aZBqytQmDWr": [
+        "/home/denis/dev/loom-memory",
+        "/home/denis/dev/publications"
+      ],
+      "session_016BRQqijJ5Sa4wNiq9vmMoP": [
+        "/home/denis/dev/loom-plan"
+      ]
+    },
+    "coworkLegacyRootGrantsPruned": true,
+    "coworkScheduledTasksEnabled": true,
+    "coworkHipaaRestricted": false,
+    "orgWorkAcrossAppsDisabled": false,
+    "ccdScheduledTasksEnabled": true,
+    "hybridDetectLatched": true,
+    "sidebarMode": "chat",
+    "bypassPermissionsGateByAccount": {
+      "cd4fdfa5-3c6a-43fe-a96a-4db71996b691": false
+    },
+    "coworkWebSearchEnabled": true,
+    "coworkModelAutoFallbackByAccount": {
+      "cd4fdfa5-3c6a-43fe-a96a-4db71996b691": true
+    },
+    "remoteToolsDeviceName": "denis",
+    "epitaxyPrefs": {
+      "starred-local-code-sessions": [],
+      "starred-cowork-spaces": [],
+      "starred-session-groups": [],
+      "dframe-group-scopes": {},
+      "dframe-local-slice": {
+        "pinnedOrder": [],
+        "homeProjectsPinnedOrder": []
+      },
+      "desktop-frame.paneStore.v1": {
+        "state": {
+          "extraPanesByMode": {},
+          "colWeightsByMode": {},
+          "rowSplit": 0.5,
+          "draftNonce": 0
+        },
+        "version": 4
+      },
+      "ccd-sessions-filter": {
+        "state": {
+          "selectedProjects": []
+        },
+        "version": 0
+      }
+    }
+  }
+}

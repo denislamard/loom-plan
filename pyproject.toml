@@ -9,10 +9,12 @@ dependencies = [
     "google-auth>=2.40",
     "google-auth-oauthlib>=1.2",
     "httpx>=0.28",
+    "mcp>=1.28,<2",
 ]
 
 [project.scripts]
 loom-plan = "loom_plan.cli:main"
+loom-plan-mcp = "loom_plan.server:main"
 
 [dependency-groups]
 dev = [

@@ -26,7 +26,7 @@ def render_item(item: Item, *, with_notes: bool = True) -> str:
     if item.status is not Status.OPEN:
         parts.append(f"statut : {_STATUS_FR[item.status]}")
     if item.recurring:
-        parts.append("récurrent")
+        parts.append("récurrent (suivi)" if item.tracked else "récurrent")
     parts.append(f"id : {item.id}")
     line = " — ".join(parts)
     if with_notes and item.notes:

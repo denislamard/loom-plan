@@ -30,6 +30,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         cfg = load_config()
         if args.command == "auth":
             return _cmd_auth(cfg)
+        if args.command == "serve":
+            from loom_plan.server import serve
+
+            serve()
+            return 0
         return asyncio.run(_run(cfg, args))
     except (ConfigError, AuthError, GoogleApiError, PlanError) as exc:
         print(f"erreur : {exc}", file=sys.stderr)
@@ -43,6 +48,7 @@ def _build_parser() -> argparse.ArgumentParser:
     sub.add_parser("auth", help="lance le consentement OAuth et enregistre token.json")
     sub.add_parser("check", help="vérifie le token : liste les agendas et les listes Tasks")
     sub.add_parser("containers", help="agendas et listes disponibles")
+    sub.add_parser("serve", help="lance le serveur MCP (stdio) pour Claude Desktop")
 
     s = sub.add_parser("next", help="état de la journée : retards, événements, créneaux, tâches")
     s.add_argument("--hours", type=float, help="fenêtre en heures (défaut : fin de journée)")
@@ -84,6 +90,8 @@ def _build_parser() -> argparse.ArgumentParser:
     s.add_argument("--notes")
     s.add_argument("--location")
     s.add_argument("--all-day", action="store_true")
+    s.add_argument("--recurrence", help="règle RRULE, ex. FREQ=WEEKLY;BYDAY=WE")
+    s.add_argument("--tracked", action="store_true", help="pose [suivi] (récurrence seulement)")
 
     s = sub.add_parser("set-status", help="open | done | cancelled")
     s.add_argument("id")
@@ -180,6 +188,8 @@ async def _run(cfg: Config, args: argparse.Namespace) -> int:
                 cast(str | None, args.notes),
                 cast(str | None, args.location),
                 all_day,
+                cast(str | None, args.recurrence),
+                cast(bool, args.tracked),
             )
             print(render_item(item))
 
