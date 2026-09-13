@@ -1,0 +1,26 @@
+# Configuration loom-plan (spec §9). Chemin lu depuis LOOM_PLAN_CONFIG, sinon ./loom-plan.toml.
+# Les chemins relatifs sont résolus par rapport à ce fichier.
+
+[auth]
+client_secret = "client_secret.json"
+token = "token.json"
+
+[general]
+timezone = "Europe/Paris"
+# Date de mise en service : rien d'antérieur n'est considéré comme « en retard ».
+epoch = 2026-09-13
+# Agenda principal (id Google ou "primary") et liste Tasks par défaut (nom ou id).
+primary_calendar = "lamard.denis@gmail.com"
+default_task_list = "Liste de lamard.denis"
+notes_max_chars = 500
+cache_ttl_seconds = 30
+
+[work]
+# Horaires de travail pour free_slots et la fenêtre par défaut de next.
+start = 09:00:00
+end = 18:00:00
+days = ["mon", "tue", "wed", "thu", "fri"]
+
+[status]
+done_prefix = "[fait]"
+cancelled_prefix = "[annulé]"

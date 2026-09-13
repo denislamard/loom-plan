@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# loom-plan — secrets OAuth Google (jamais commités)
+client_secret.json
+token.json
+token.json.tmp
+token.lock
